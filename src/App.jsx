@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 
+export default function App() {  // ← 정확히 이렇게!
+
 export default function PhotoEditor() {
   const [baseImage, setBaseImage] = useState(null);
   const [stickers, setStickers] = useState([]);
