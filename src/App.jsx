@@ -374,7 +374,39 @@ export default function App() {
                 touchAction: 'none'
               }}>
               {cropMode && (
-                <div style={{ position: 'absolute', left: `${cropBox.x}px`, top: `${cropBox.y}px`, width: `${cropBox.width}px`, height: `${cropBox.height}px`, border: '2px solid #D4AF37', background: 'rgba(0,0,0,0.3)', cursor: 'move' }} onMouseDown={(e) => { e.preventDefault(); const rect = containerRef.current.getBoundingClientRect(); const startX = e.clientX - rect.left - cropBox.x; const startY = e.clientY - rect.top - cropBox.y; const handleDrag = (moveE) => { const newX = Math.max(0, moveE.clientX - rect.left - startX); const newY = Math.max(0, moveE.clientY - rect.top - startY); setCropBox({ ...cropBox, x: newX, y: newY }); }; const handleStop = () => { document.removeEventListener('mousemove', handleDrag); document.removeEventListener('mouseup', handleStop); }; document.addEventListener('mousemove', handleDrag); document.addEventListener('mouseup', handleStop); }} />
+                <div 
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    const rect = containerRef.current.getBoundingClientRect();
+                    const startX = e.clientX - rect.left - cropBox.x;
+                    const startY = e.clientY - rect.top - cropBox.y;
+                    
+                    const handleDrag = (moveE) => {
+                      const newX = Math.max(0, moveE.clientX - rect.left - startX);
+                      const newY = Math.max(0, moveE.clientY - rect.top - startY);
+                      setCropBox({ ...cropBox, x: newX, y: newY });
+                    };
+                    
+                    const handleStop = () => {
+                      document.removeEventListener('pointermove', handleDrag);
+                      document.removeEventListener('pointerup', handleStop);
+                    };
+                    
+                    document.addEventListener('pointermove', handleDrag);
+                    document.addEventListener('pointerup', handleStop);
+                  }}
+                  style={{ 
+                    position: 'absolute', 
+                    left: `${cropBox.x}px`, 
+                    top: `${cropBox.y}px`, 
+                    width: `${cropBox.width}px`, 
+                    height: `${cropBox.height}px`, 
+                    border: '2px solid #D4AF37', 
+                    background: 'rgba(0,0,0,0.3)', 
+                    cursor: 'move',
+                    touchAction: 'none'
+                  }} 
+                />
               )}
 
               {emojis.map((emoji, index) => (
