@@ -237,18 +237,17 @@ export default function App() {
 
       canvas.width = baseImg.width * dpiScale;
       canvas.height = baseImg.height * dpiScale;
-      ctx.scale(dpiScale, dpiScale);
-      ctx.drawImage(baseImg, 0, 0);
+      ctx.drawImage(baseImg, 0, 0, baseImg.width * dpiScale, baseImg.height * dpiScale);
 
       const scale = baseImg.width / containerRef.current.clientWidth;
 
       // 이모지 그리기
       emojis.forEach((emoji) => {
         ctx.save();
-        ctx.font = `${emoji.size * scale}px Arial`;
+        ctx.font = `${emoji.size * scale * dpiScale}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.translate((emoji.x + emoji.size / 2) * scale, (emoji.y + emoji.size / 2) * scale);
+        ctx.translate((emoji.x + emoji.size / 2) * scale * dpiScale, (emoji.y + emoji.size / 2) * scale * dpiScale);
         ctx.rotate((emoji.rotation * Math.PI) / 180);
         ctx.fillText(emoji.emoji, 0, 0);
         ctx.restore();
@@ -257,15 +256,15 @@ export default function App() {
       // 텍스트 그리기
       textStickers.forEach((textSticker) => {
         ctx.save();
-        ctx.font = `bold ${textSticker.size * scale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        ctx.font = `bold ${textSticker.size * scale * dpiScale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.translate((textSticker.x + textSticker.size / 2) * scale, (textSticker.y + textSticker.size / 2) * scale);
+        ctx.translate((textSticker.x + textSticker.size / 2) * scale * dpiScale, (textSticker.y + textSticker.size / 2) * scale * dpiScale);
         ctx.rotate((textSticker.rotation * Math.PI) / 180);
         
         if (textSticker.strokeWidth > 0) {
           ctx.strokeStyle = textSticker.stroke;
-          ctx.lineWidth = textSticker.strokeWidth * scale;
+          ctx.lineWidth = textSticker.strokeWidth * scale * dpiScale;
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
           ctx.strokeText(textSticker.text, 0, 0);
@@ -282,11 +281,11 @@ export default function App() {
         stickers.forEach((sticker, idx) => {
           try {
             ctx.save();
-            const centerX = (sticker.x + sticker.size / 2) * scale;
-            const centerY = (sticker.y + sticker.size / 2) * scale;
+            const centerX = (sticker.x + sticker.size / 2) * scale * dpiScale;
+            const centerY = (sticker.y + sticker.size / 2) * scale * dpiScale;
             ctx.translate(centerX, centerY);
             ctx.rotate((sticker.rotation * Math.PI) / 180);
-            ctx.drawImage(stickerImgs[idx], -(sticker.size / 2) * scale, -(sticker.size / 2) * scale, sticker.size * scale, sticker.size * scale);
+            ctx.drawImage(stickerImgs[idx], -(sticker.size / 2) * scale * dpiScale, -(sticker.size / 2) * scale * dpiScale, sticker.size * scale * dpiScale, sticker.size * scale * dpiScale);
             ctx.restore();
           } catch (err) {
             console.error('스티커 그리기 실패:', err);
@@ -363,7 +362,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '12px', flex: 1, minHeight: '0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gridTemplateRows: isMobile ? 'auto auto' : 'auto', gap: '12px', flex: 1, minHeight: '0', gridAutoFlow: isMobile ? 'dense' : 'row', order: isMobile ? '1' : 'auto' }}>
             <div 
               ref={containerRef} 
               onPointerMove={handlePointerMove} 
@@ -377,13 +376,14 @@ export default function App() {
                 backgroundPosition: 'center', 
                 width: '100%', 
                 height: '100%', 
-                minHeight: isMobile ? '250px' : '300px', 
+                minHeight: isMobile ? '350px' : '300px', 
                 border: '1px solid #2a3a4e', 
                 borderRadius: '8px', 
                 cursor: cropMode ? 'crosshair' : 'default', 
                 backgroundColor: '#050a11', 
                 overflow: 'hidden',
-                touchAction: 'none'
+                touchAction: 'none',
+                order: isMobile ? '1' : 'auto'
               }}>
               {cropMode && (
                 <div 
@@ -484,7 +484,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ background: '#1a2a3e', borderRadius: '8px', padding: '12px', border: '1px solid #2a3a4e', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ background: '#1a2a3e', borderRadius: '8px', padding: '12px', border: '1px solid #2a3a4e', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', order: isMobile ? '2' : 'auto' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 {[{ id: 'draw', label: '그리기' }, { id: 'text', label: '글자' }].map((item) => (
                   <button key={item.id} onClick={() => setTab(item.id)} style={{ padding: '10px', background: tab === item.id ? '#D4AF37' : '#252535', color: tab === item.id ? '#0a1929' : '#ffffff', border: '1px solid ' + (tab === item.id ? '#D4AF37' : '#3a4a5e'), borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>
