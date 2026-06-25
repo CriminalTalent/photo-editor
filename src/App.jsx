@@ -23,13 +23,6 @@ export default function App() {
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const bgColor = '#0a1929';
-  const textColor_ = '#ffffff';
-  const secondaryBg = '#1a2a3e';
-  const borderColor = '#2a3a4e';
-  const accentColor = '#D4AF37';
-  const buttonColor = '#1a1a1a';
-
   const handleBaseImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -73,43 +66,50 @@ export default function App() {
     }
   };
 
-  const handleMouseDown = (e, index, type) => {
+  const handlePointerDown = (e, index, type) => {
     if (cropMode) return;
+    e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const posX = e.clientX - rect.left;
+    const posY = e.clientY - rect.top;
+    
     setDraggingIndex(index);
     setSelectedIndex(index);
     setSelectedType(type);
-    const obj = type === 'sticker' ? stickers[index] : type === 'emoji' ? emojis[index] : type === 'text' ? textStickers[index] : mosaics[index];
-    setDragOffset({ x: mouseX - obj.x, y: mouseY - obj.y });
+    
+    let obj;
+    if (type === 'sticker') obj = stickers[index];
+    else if (type === 'emoji') obj = emojis[index];
+    else if (type === 'text') obj = textStickers[index];
+    
+    setDragOffset({ x: posX - obj.x, y: posY - obj.y });
   };
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
     if (draggingIndex === null || !selectedType || cropMode) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const posX = e.clientX - rect.left;
+    const posY = e.clientY - rect.top;
 
     if (selectedType === 'sticker') {
       const newStickers = [...stickers];
-      newStickers[draggingIndex].x = Math.max(0, mouseX - dragOffset.x);
-      newStickers[draggingIndex].y = Math.max(0, mouseY - dragOffset.y);
+      newStickers[draggingIndex].x = Math.max(0, posX - dragOffset.x);
+      newStickers[draggingIndex].y = Math.max(0, posY - dragOffset.y);
       setStickers(newStickers);
     } else if (selectedType === 'emoji') {
       const newEmojis = [...emojis];
-      newEmojis[draggingIndex].x = Math.max(0, mouseX - dragOffset.x);
-      newEmojis[draggingIndex].y = Math.max(0, mouseY - dragOffset.y);
+      newEmojis[draggingIndex].x = Math.max(0, posX - dragOffset.x);
+      newEmojis[draggingIndex].y = Math.max(0, posY - dragOffset.y);
       setEmojis(newEmojis);
     } else if (selectedType === 'text') {
       const newTextStickers = [...textStickers];
-      newTextStickers[draggingIndex].x = Math.max(0, mouseX - dragOffset.x);
-      newTextStickers[draggingIndex].y = Math.max(0, mouseY - dragOffset.y);
+      newTextStickers[draggingIndex].x = Math.max(0, posX - dragOffset.x);
+      newTextStickers[draggingIndex].y = Math.max(0, posY - dragOffset.y);
       setTextStickers(newTextStickers);
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     setDraggingIndex(null);
   };
 
@@ -130,57 +130,39 @@ export default function App() {
   };
 
   const deleteItem = (index, type) => {
-    if (type === 'sticker') setStickers(stickers.filter((_, i) => i !== index));
-    else if (type === 'emoji') setEmojis(emojis.filter((_, i) => i !== index));
-    else if (type === 'text') setTextStickers(textStickers.filter((_, i) => i !== index));
+    if (type === 'sticker') {
+      setStickers(stickers.filter((_, i) => i !== index));
+    } else if (type === 'emoji') {
+      setEmojis(emojis.filter((_, i) => i !== index));
+    } else if (type === 'text') {
+      setTextStickers(textStickers.filter((_, i) => i !== index));
+    }
     setSelectedIndex(null);
     setSelectedType(null);
   };
 
   const cropImage = () => {
-    if (!baseImage || !containerRef.current) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const scaleX = img.width / containerRef.current.clientWidth;
-        const scaleY = img.height / containerRef.current.clientHeight;
-        
-        if (scaleX <= 0 || scaleY <= 0) return;
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        const newWidth = Math.max(1, cropBox.width * scaleX);
-        const newHeight = Math.max(1, cropBox.height * scaleY);
-        
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        
-        ctx.drawImage(
-          img,
-          cropBox.x * scaleX,
-          cropBox.y * scaleY,
-          cropBox.width * scaleX,
-          cropBox.height * scaleY,
-          0,
-          0,
-          newWidth,
-          newHeight
-        );
-        
-        const croppedImage = canvas.toDataURL('image/png');
-        setBaseImage(croppedImage);
-        setCropMode(false);
-        setCropBox({ x: 0, y: 0, width: 300, height: 300 });
-      } catch (error) {
-        console.error('자르기 오류:', error);
-      }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const baseImg = new Image();
+    baseImg.crossOrigin = 'anonymous';
+    baseImg.onload = () => {
+      const scale = baseImg.width / containerRef.current.clientWidth;
+      const croppedX = cropBox.x * scale;
+      const croppedY = cropBox.y * scale;
+      const croppedWidth = cropBox.width * scale;
+      const croppedHeight = cropBox.height * scale;
+
+      canvas.width = croppedWidth;
+      canvas.height = croppedHeight;
+      ctx.drawImage(baseImg, croppedX, croppedY, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+
+      const croppedImage = canvas.toDataURL();
+      setBaseImage(croppedImage);
+      setCropMode(false);
     };
-    img.onerror = () => {
-      console.error('이미지 로드 실패');
-    };
-    img.src = baseImage;
+    baseImg.src = baseImage;
   };
 
   const downloadImage = () => {
@@ -192,7 +174,7 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     const baseImg = new Image();
     baseImg.crossOrigin = 'anonymous';
-    const dpiScale = 2; // 2배 해상도로 다운로드
+    const dpiScale = 2;
     
     baseImg.onload = () => {
       try {
@@ -348,141 +330,205 @@ export default function App() {
           border: none;
           box-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
         }
-        button:hover {
-          transform: translateY(-1px);
-          transition: all 0.2s ease;
-        }
-        input[type="text"], input[type="color"] {
-          transition: all 0.2s ease;
-        }
-        input[type="text"]:focus {
-          outline: none;
-          border-color: #D4AF37 !important;
-          box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
-        }
       `}</style>
+
       {!baseImage ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 12px 0', color: '#D4AF37', letterSpacing: '-0.5px' }}>포토 에디터</h1>
-          <p style={{ fontSize: '14px', color: '#8899aa', margin: '0 0 40px 0', fontWeight: '400' }}>이미지를 편집하고 공유하세요</p>
-          <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px solid #D4AF37', borderRadius: '12px', padding: '60px 30px', textAlign: 'center', cursor: 'pointer', background: '#1a2a3e', width: '100%', maxWidth: '400px', transition: 'all 0.3s ease', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#253a4e'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#1a2a3e'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <h1 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 12px 0', color: '#D4AF37' }}>포토 에디터</h1>
+          <p style={{ fontSize: '14px', color: '#8899aa', margin: '0 0 40px 0' }}>이미지를 편집하고 공유하세요</p>
+          <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px solid #D4AF37', borderRadius: '12px', padding: '60px 30px', textAlign: 'center', cursor: 'pointer', background: '#1a2a3e', width: '100%', maxWidth: '400px' }}>
             <div style={{ fontSize: '44px', marginBottom: '16px' }}>🖼️</div>
             <h2 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 8px 0' }}>사진 선택</h2>
-            <p style={{ fontSize: '13px', color: '#8899aa', margin: '0' }}>클릭하여 이미지 업로드</p>
+            <p style={{ fontSize: '13px', color: '#8899aa', margin: '0' }}>클릭하여 업로드</p>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-          <div style={{ background: secondaryBg, borderRadius: '8px', padding: '12px', flex: '0 0 66%' }}>
-            <div ref={containerRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ position: 'relative', backgroundImage: `url(${baseImage})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', width: '100%', height: '100%', minHeight: '300px', border: `1px solid ${borderColor}`, borderRadius: '6px', cursor: cropMode ? 'crosshair' : 'default', backgroundColor: '#050a11' }}>
-              {cropMode && <div style={{ position: 'absolute', left: `${cropBox.x}px`, top: `${cropBox.y}px`, width: `${cropBox.width}px`, height: `${cropBox.height}px`, border: '2px solid #D4AF37', background: 'rgba(0,0,0,0.3)', cursor: 'move' }} onMouseDown={(e) => { e.preventDefault(); const rect = containerRef.current.getBoundingClientRect(); const startX = e.clientX - rect.left - cropBox.x; const startY = e.clientY - rect.top - cropBox.y; const handleDrag = (moveE) => { const newX = Math.max(0, moveE.clientX - rect.left - startX); const newY = Math.max(0, moveE.clientY - rect.top - startY); setCropBox({ ...cropBox, x: newX, y: newY }); }; const handleStop = () => { document.removeEventListener('mousemove', handleDrag); document.removeEventListener('mouseup', handleStop); }; document.addEventListener('mousemove', handleDrag); document.addEventListener('mouseup', handleStop); }} />}
-
-              {!cropMode && emojis.map((emoji, index) => (
-                <div key={emoji.id} onMouseDown={(e) => handleMouseDown(e, index, 'emoji')} onClick={() => { setSelectedIndex(index); setSelectedType('emoji'); }} style={{ position: 'absolute', left: `${emoji.x}px`, top: `${emoji.y}px`, cursor: 'grab', border: selectedIndex === index && selectedType === 'emoji' ? `2px solid ${accentColor}` : 'none', padding: '2px 6px', transform: `rotate(${emoji.rotation}deg)` }}>
-                  <span style={{ fontSize: `${emoji.size}px`, fontWeight: 'bold', whiteSpace: 'nowrap' }}>{emoji.emoji}</span>
-                </div>
-              ))}
-
-              {!cropMode && textStickers.map((textSticker, index) => (
-                <div key={textSticker.id} onMouseDown={(e) => handleMouseDown(e, index, 'text')} onClick={() => { setSelectedIndex(index); setSelectedType('text'); }} style={{ position: 'absolute', left: `${textSticker.x}px`, top: `${textSticker.y}px`, cursor: 'grab', border: selectedIndex === index && selectedType === 'text' ? `2px solid ${accentColor}` : 'none', padding: '2px 6px', transform: `rotate(${textSticker.rotation}deg)` }}>
-                  <span style={{ fontSize: `${textSticker.size}px`, color: textSticker.color, fontWeight: 'bold', whiteSpace: 'nowrap', WebkitTextStroke: textSticker.strokeWidth > 0 ? `${textSticker.strokeWidth * 0.5}px ${textSticker.stroke}` : 'none' }}>{textSticker.text}</span>
-                </div>
-              ))}
-
-              {!cropMode && stickers.map((sticker, index) => (
-                <div key={sticker.id} onMouseDown={(e) => handleMouseDown(e, index, 'sticker')} onClick={() => { setSelectedIndex(index); setSelectedType('sticker'); }} style={{ position: 'absolute', left: `${sticker.x}px`, top: `${sticker.y}px`, width: `${sticker.size}px`, height: `${sticker.size}px`, backgroundImage: `url(${sticker.src})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', transform: `rotate(${sticker.rotation}deg)`, cursor: 'grab', border: selectedIndex === index && selectedType === 'sticker' ? `2px solid ${accentColor}` : 'none', borderRadius: '6px' }} />
-              ))}
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h1 style={{ fontSize: '20px', fontWeight: '700', margin: '0', color: '#D4AF37' }}>포토 에디터</h1>
+            <button onClick={() => setBaseImage(null)} style={{ padding: '6px 12px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
+              새로 시작
+            </button>
           </div>
 
-          <div style={{ background: secondaryBg, borderRadius: '8px', padding: '12px', border: `1px solid ${borderColor}`, flex: 1, overflowY: 'auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '12px' }}>
-              {[{ id: 'draw', label: '그리기' }, { id: 'text', label: '글자' }].map((item) => (
-                <button key={item.id} onClick={() => setTab(item.id)} style={{ padding: '10px', background: tab === item.id ? '#D4AF37' : '#252535', color: tab === item.id ? '#0a1929' : '#ffffff', border: '1px solid ' + (tab === item.id ? '#D4AF37' : '#3a4a5e'), borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', transition: 'all 0.2s ease', boxShadow: tab === item.id ? '0 4px 12px rgba(212, 175, 55, 0.2)' : 'none' }}>
-                  {item.label}
-                </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', flex: 1, minHeight: '0' }}>
+            <div 
+              ref={containerRef} 
+              onPointerMove={handlePointerMove} 
+              onPointerUp={handlePointerUp} 
+              onPointerLeave={handlePointerUp}
+              style={{ 
+                position: 'relative', 
+                backgroundImage: `url(${baseImage})`, 
+                backgroundSize: 'contain', 
+                backgroundRepeat: 'no-repeat', 
+                backgroundPosition: 'center', 
+                width: '100%', 
+                height: '100%', 
+                minHeight: '300px', 
+                border: '1px solid #2a3a4e', 
+                borderRadius: '8px', 
+                cursor: cropMode ? 'crosshair' : 'default', 
+                backgroundColor: '#050a11', 
+                overflow: 'hidden',
+                touchAction: 'none'
+              }}>
+              {cropMode && (
+                <div style={{ position: 'absolute', left: `${cropBox.x}px`, top: `${cropBox.y}px`, width: `${cropBox.width}px`, height: `${cropBox.height}px`, border: '2px solid #D4AF37', background: 'rgba(0,0,0,0.3)', cursor: 'move' }} onMouseDown={(e) => { e.preventDefault(); const rect = containerRef.current.getBoundingClientRect(); const startX = e.clientX - rect.left - cropBox.x; const startY = e.clientY - rect.top - cropBox.y; const handleDrag = (moveE) => { const newX = Math.max(0, moveE.clientX - rect.left - startX); const newY = Math.max(0, moveE.clientY - rect.top - startY); setCropBox({ ...cropBox, x: newX, y: newY }); }; const handleStop = () => { document.removeEventListener('mousemove', handleDrag); document.removeEventListener('mouseup', handleStop); }; document.addEventListener('mousemove', handleDrag); document.addEventListener('mouseup', handleStop); }} />
+              )}
+
+              {emojis.map((emoji, index) => (
+                <div 
+                  key={emoji.id} 
+                  onPointerDown={(e) => handlePointerDown(e, index, 'emoji')} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: `${emoji.x}px`, 
+                    top: `${emoji.y}px`, 
+                    cursor: 'grab', 
+                    userSelect: 'none', 
+                    border: selectedIndex === index && selectedType === 'emoji' ? '2px solid #D4AF37' : 'none', 
+                    padding: '2px', 
+                    borderRadius: '4px', 
+                    transform: `rotate(${emoji.rotation}deg)`,
+                    touchAction: 'none'
+                  }}>
+                  <span style={{ fontSize: `${emoji.size}px`, display: 'block' }}>{emoji.emoji}</span>
+                </div>
+              ))}
+
+              {textStickers.map((textSticker, index) => (
+                <div 
+                  key={textSticker.id} 
+                  onPointerDown={(e) => handlePointerDown(e, index, 'text')} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: `${textSticker.x}px`, 
+                    top: `${textSticker.y}px`, 
+                    cursor: 'grab', 
+                    userSelect: 'none', 
+                    border: selectedIndex === index && selectedType === 'text' ? '2px solid #D4AF37' : 'none', 
+                    padding: '2px 6px', 
+                    borderRadius: '4px', 
+                    transform: `rotate(${textSticker.rotation}deg)`,
+                    touchAction: 'none'
+                  }}>
+                  <span style={{ fontSize: `${textSticker.size}px`, fontWeight: 'bold', color: textSticker.color, WebkitTextStroke: `${textSticker.strokeWidth}px ${textSticker.stroke}`, display: 'block', lineHeight: '1' }}>{textSticker.text}</span>
+                </div>
+              ))}
+
+              {stickers.map((sticker, index) => (
+                <div 
+                  key={sticker.id} 
+                  onPointerDown={(e) => handlePointerDown(e, index, 'sticker')} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: `${sticker.x}px`, 
+                    top: `${sticker.y}px`, 
+                    width: `${sticker.size}px`, 
+                    height: `${sticker.size}px`, 
+                    backgroundImage: `url(${sticker.src})`, 
+                    backgroundSize: 'contain', 
+                    backgroundRepeat: 'no-repeat', 
+                    backgroundPosition: 'center', 
+                    transform: `rotate(${sticker.rotation}deg)`, 
+                    cursor: 'grab', 
+                    border: selectedIndex === index && selectedType === 'sticker' ? '2px solid #D4AF37' : 'none', 
+                    borderRadius: '4px',
+                    touchAction: 'none'
+                  }} />
               ))}
             </div>
 
-            {tab === 'draw' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <input type="file" accept="image/*" multiple onChange={handleStickerUpload} style={{ padding: '8px', fontSize: '12px', border: `1px solid ${borderColor}`, borderRadius: '4px', background: '#050a11', color: textColor_, cursor: 'pointer' }} />
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input type="text" value={emojiInput} onChange={(e) => setEmojiInput(e.target.value)} placeholder="이모지 입력" style={{ flex: 1, padding: '8px', border: `1px solid ${borderColor}`, borderRadius: '4px', background: '#050a11', color: textColor_, fontSize: '14px' }} />
-                  <span style={{ fontSize: '24px' }}>{emojiInput}</span>
+            <div style={{ background: '#1a2a3e', borderRadius: '8px', padding: '12px', border: '1px solid #2a3a4e', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                {[{ id: 'draw', label: '그리기' }, { id: 'text', label: '글자' }].map((item) => (
+                  <button key={item.id} onClick={() => setTab(item.id)} style={{ padding: '10px', background: tab === item.id ? '#D4AF37' : '#252535', color: tab === item.id ? '#0a1929' : '#ffffff', border: '1px solid ' + (tab === item.id ? '#D4AF37' : '#3a4a5e'), borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {tab === 'draw' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input type="file" accept="image/*" multiple onChange={handleStickerUpload} style={{ padding: '8px', fontSize: '12px', border: '1px solid #2a3a4e', borderRadius: '4px', background: '#050a11', color: '#ffffff', cursor: 'pointer' }} />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" value={emojiInput} onChange={(e) => setEmojiInput(e.target.value)} placeholder="이모지" style={{ flex: 1, padding: '8px', border: '1px solid #2a3a4e', borderRadius: '4px', background: '#050a11', color: '#ffffff', fontSize: '14px' }} />
+                    <span style={{ fontSize: '24px' }}>{emojiInput}</span>
+                  </div>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>크기: {emojiSize}px</label><input type="range" min="20" max="150" value={emojiSize} onChange={(e) => setEmojiSize(parseInt(e.target.value))} style={{ width: '100%' }} /></div>
+                  <button onClick={addEmoji} style={{ padding: '8px', background: '#D4AF37', color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
+                    추가
+                  </button>
                 </div>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>크기: {emojiSize}px</label><input type="range" min="20" max="150" value={emojiSize} onChange={(e) => setEmojiSize(parseInt(e.target.value))} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <button onClick={addEmoji} style={{ padding: '8px', background: accentColor, color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                  추가
+              )}
+
+              {tab === 'text' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" value={textInput} onChange={(e) => setTextInput(e.target.value)} placeholder="텍스트" style={{ padding: '8px', border: '1px solid #2a3a4e', borderRadius: '4px', background: '#050a11', color: '#ffffff', fontSize: '12px' }} onKeyPress={(e) => e.key === 'Enter' && addTextSticker()} />
+                  <label style={{ fontSize: '11px', color: '#888' }}>글자색</label>
+                  <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} style={{ width: '100%', height: '25px', borderRadius: '4px', border: 'none', cursor: 'pointer' }} />
+                  <label style={{ fontSize: '11px', color: '#888' }}>테두리색</label>
+                  <input type="color" value={textStroke} onChange={(e) => setTextStroke(e.target.value)} style={{ width: '100%', height: '25px', borderRadius: '4px', border: 'none', cursor: 'pointer' }} />
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>테두리: {textStrokeWidth}px</label><input type="range" min="0" max="5" value={textStrokeWidth} onChange={(e) => setTextStrokeWidth(parseInt(e.target.value))} style={{ width: '100%' }} /></div>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>크기: {textSize}px</label><input type="range" min="12" max="72" value={textSize} onChange={(e) => setTextSize(parseInt(e.target.value))} style={{ width: '100%' }} /></div>
+                  <button onClick={addTextSticker} style={{ padding: '8px', background: '#D4AF37', color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
+                    추가
+                  </button>
+                </div>
+              )}
+
+              {cropMode && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#050a11', padding: '10px', borderRadius: '4px', border: '1px solid #2a3a4e' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#D4AF37' }}>자르기 범위</h4>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>X: {cropBox.x}px</label><input type="range" min="0" max="400" value={cropBox.x} onChange={(e) => setCropBox({ ...cropBox, x: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>Y: {cropBox.y}px</label><input type="range" min="0" max="400" value={cropBox.y} onChange={(e) => setCropBox({ ...cropBox, y: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>너비: {cropBox.width}px</label><input type="range" min="50" max="400" value={cropBox.width} onChange={(e) => setCropBox({ ...cropBox, width: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div><label style={{ fontSize: '10px', color: '#888' }}>높이: {cropBox.height}px</label><input type="range" min="50" max="400" value={cropBox.height} onChange={(e) => setCropBox({ ...cropBox, height: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                </div>
+              )}
+
+              {selectedIndex !== null && selectedType === 'sticker' && (
+                <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', border: '1px solid #2a3a4e' }}>
+                  <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>스티커</h4>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {stickers[selectedIndex].size}px</label><input type="range" min="20" max="300" value={stickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'sticker', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {stickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={stickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'sticker', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <button onClick={() => deleteItem(selectedIndex, 'sticker')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                    삭제
+                  </button>
+                </div>
+              )}
+
+              {selectedIndex !== null && selectedType === 'emoji' && (
+                <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', border: '1px solid #2a3a4e' }}>
+                  <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>이모지</h4>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {emojis[selectedIndex].size}px</label><input type="range" min="20" max="150" value={emojis[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'emoji', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {emojis[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={emojis[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'emoji', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <button onClick={() => deleteItem(selectedIndex, 'emoji')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                    삭제
+                  </button>
+                </div>
+              )}
+
+              {selectedIndex !== null && selectedType === 'text' && (
+                <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', border: '1px solid #2a3a4e' }}>
+                  <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>글자</h4>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {textStickers[selectedIndex].size}px</label><input type="range" min="12" max="72" value={textStickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'text', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {textStickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={textStickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'text', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <button onClick={() => deleteItem(selectedIndex, 'text')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                    삭제
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: 'auto' }}>
+                <button onClick={() => { if (cropMode) { cropImage(); } else { setCropMode(true); } }} style={{ padding: '8px', background: cropMode ? '#ff4444' : '#252535', color: cropMode ? 'white' : '#ffffff', border: '1px solid #333', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>
+                  {cropMode ? '완료' : '자르기'}
+                </button>
+                <button onClick={downloadImage} style={{ padding: '8px', background: '#D4AF37', color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>
+                  다운로드
                 </button>
               </div>
-            )}
-
-            {tab === 'text' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input type="text" value={textInput} onChange={(e) => setTextInput(e.target.value)} placeholder="텍스트 입력" style={{ padding: '8px', border: `1px solid ${borderColor}`, borderRadius: '4px', background: '#050a11', color: textColor_, fontSize: '12px' }} onKeyPress={(e) => e.key === 'Enter' && addTextSticker()} />
-                <label style={{ fontSize: '11px', color: '#888' }}>글자색</label>
-                <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} style={{ width: '100%', height: '25px', borderRadius: '4px', border: 'none', cursor: 'pointer' }} />
-                <label style={{ fontSize: '11px', color: '#888' }}>테두리색</label>
-                <input type="color" value={textStroke} onChange={(e) => setTextStroke(e.target.value)} style={{ width: '100%', height: '25px', borderRadius: '4px', border: 'none', cursor: 'pointer' }} />
-                <div><label style={{ fontSize: '10px', color: '#888' }}>테두리: {textStrokeWidth}px</label><input type="range" min="0" max="5" value={textStrokeWidth} onChange={(e) => setTextStrokeWidth(parseInt(e.target.value))} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>크기: {textSize}px</label><input type="range" min="12" max="72" value={textSize} onChange={(e) => setTextSize(parseInt(e.target.value))} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <button onClick={addTextSticker} style={{ padding: '8px', background: accentColor, color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                  추가
-                </button>
-              </div>
-            )}
-
-            {cropMode && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#050a11', padding: '10px', borderRadius: '4px', border: `1px solid ${borderColor}` }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: accentColor, textTransform: 'uppercase' }}>자르기 범위</h4>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>X: {cropBox.x}px</label><input type="range" min="0" max="400" value={cropBox.x} onChange={(e) => setCropBox({ ...cropBox, x: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>Y: {cropBox.y}px</label><input type="range" min="0" max="400" value={cropBox.y} onChange={(e) => setCropBox({ ...cropBox, y: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>너비: {cropBox.width}px</label><input type="range" min="50" max="400" value={cropBox.width} onChange={(e) => setCropBox({ ...cropBox, width: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div><label style={{ fontSize: '10px', color: '#888' }}>높이: {cropBox.height}px</label><input type="range" min="50" max="400" value={cropBox.height} onChange={(e) => setCropBox({ ...cropBox, height: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-              </div>
-            )}
-
-            {selectedIndex !== null && selectedType === 'sticker' && (
-              <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', marginTop: '8px', border: `1px solid ${borderColor}` }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: accentColor }}>스티커</h4>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {stickers[selectedIndex].size}px</label><input type="range" min="20" max="300" value={stickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'sticker', { size: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {stickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={stickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'sticker', { rotation: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <button onClick={() => deleteItem(selectedIndex, 'sticker')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-                  삭제
-                </button>
-              </div>
-            )}
-
-            {selectedIndex !== null && selectedType === 'emoji' && (
-              <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', marginTop: '8px', border: `1px solid ${borderColor}` }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: accentColor }}>이모지</h4>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {emojis[selectedIndex].size}px</label><input type="range" min="20" max="150" value={emojis[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'emoji', { size: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {emojis[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={emojis[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'emoji', { rotation: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <button onClick={() => deleteItem(selectedIndex, 'emoji')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-                  삭제
-                </button>
-              </div>
-            )}
-
-            {selectedIndex !== null && selectedType === 'text' && (
-              <div style={{ background: '#050a11', padding: '8px', borderRadius: '4px', marginTop: '8px', border: `1px solid ${borderColor}` }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: accentColor }}>글자</h4>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {textStickers[selectedIndex].size}px</label><input type="range" min="12" max="72" value={textStickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'text', { size: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {textStickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={textStickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'text', { rotation: parseInt(e.target.value) })} style={{ width: '100%', marginTop: '2px' }} /></div>
-                <button onClick={() => deleteItem(selectedIndex, 'text')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-                  삭제
-                </button>
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
-              <button onClick={() => { if (cropMode) { cropImage(); } else { setCropMode(true); } }} style={{ padding: '6px', background: cropMode ? '#ff4444' : buttonColor, color: cropMode ? 'white' : textColor_, border: '1px solid #333', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '10px', transition: 'all 0.2s ease' }}>
-                {cropMode ? '완료' : '자르기'}
-              </button>
-              <button onClick={downloadImage} style={{ padding: '6px', background: accentColor, color: '#0a1929', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '10px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                다운로드
-              </button>
             </div>
           </div>
         </div>
