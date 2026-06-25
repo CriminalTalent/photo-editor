@@ -19,9 +19,18 @@ export default function App() {
   const [textStroke, setTextStroke] = useState('#000000');
   const [textStrokeWidth, setTextStrokeWidth] = useState(2);
   const [tab, setTab] = useState('draw');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleBaseImageUpload = (e) => {
     const file = e.target.files[0];
@@ -165,138 +174,103 @@ export default function App() {
     baseImg.src = baseImage;
   };
 
-  const downloadImage = () => {
+  const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      img.src = src;
+    });
+  };
+
+  const downloadImage = async () => {
     const canvas = canvasRef.current;
     if (!canvas) {
       alert('캔버스 생성 실패');
       return;
     }
-    const ctx = canvas.getContext('2d');
-    const baseImg = new Image();
-    baseImg.crossOrigin = 'anonymous';
-    const dpiScale = 2;
-    
-    baseImg.onload = () => {
-      try {
-        canvas.width = baseImg.width * dpiScale;
-        canvas.height = baseImg.height * dpiScale;
-        ctx.scale(dpiScale, dpiScale);
-        ctx.drawImage(baseImg, 0, 0);
-        const scale = baseImg.width / containerRef.current.clientWidth;
 
-        emojis.forEach((emoji) => {
-          ctx.save();
-          ctx.font = `${emoji.size * scale}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.translate((emoji.x + emoji.size / 2) * scale, (emoji.y + emoji.size / 2) * scale);
-          ctx.rotate((emoji.rotation * Math.PI) / 180);
-          ctx.fillText(emoji.emoji, 0, 0);
-          ctx.restore();
-        });
+    try {
+      alert('다운로드 준비 중...');
+      const ctx = canvas.getContext('2d');
+      const baseImg = await loadImage(baseImage);
+      const dpiScale = 2;
 
-        textStickers.forEach((textSticker) => {
-          ctx.save();
-          ctx.font = `bold ${textSticker.size * scale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.translate((textSticker.x + textSticker.size / 2) * scale, (textSticker.y + textSticker.size / 2) * scale);
-          ctx.rotate((textSticker.rotation * Math.PI) / 180);
-          
-          if (textSticker.strokeWidth > 0) {
-            ctx.strokeStyle = textSticker.stroke;
-            ctx.lineWidth = textSticker.strokeWidth * scale;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.strokeText(textSticker.text, 0, 0);
-          }
-          ctx.fillStyle = textSticker.color;
-          ctx.fillText(textSticker.text, 0, 0);
-          ctx.restore();
-        });
+      canvas.width = baseImg.width * dpiScale;
+      canvas.height = baseImg.height * dpiScale;
+      ctx.scale(dpiScale, dpiScale);
+      ctx.drawImage(baseImg, 0, 0);
 
-        let loadedCount = 0;
-        const totalStickers = stickers.length;
+      const scale = baseImg.width / containerRef.current.clientWidth;
 
-        if (totalStickers === 0) {
-          setTimeout(() => {
-            try {
-              const imageData = canvas.toDataURL('image/png');
-              const link = document.createElement('a');
-              link.href = imageData;
-              link.download = `photo_${Date.now()}.png`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              alert('✓ 고해상도 다운로드 완료!');
-            } catch (error) {
-              alert('다운로드 실패: ' + error.message);
-            }
-          }, 100);
-        } else {
-          stickers.forEach((sticker) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              try {
-                ctx.save();
-                const centerX = (sticker.x + sticker.size / 2) * scale;
-                const centerY = (sticker.y + sticker.size / 2) * scale;
-                ctx.translate(centerX, centerY);
-                ctx.rotate((sticker.rotation * Math.PI) / 180);
-                ctx.drawImage(img, -(sticker.size / 2) * scale, -(sticker.size / 2) * scale, sticker.size * scale, sticker.size * scale);
-                ctx.restore();
-                loadedCount++;
-                if (loadedCount === totalStickers) {
-                  setTimeout(() => {
-                    try {
-                      const imageData = canvas.toDataURL('image/png');
-                      const link = document.createElement('a');
-                      link.href = imageData;
-                      link.download = `photo_${Date.now()}.png`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      alert('✓ 고해상도 다운로드 완료!');
-                    } catch (error) {
-                      alert('다운로드 실패: ' + error.message);
-                    }
-                  }, 100);
-                }
-              } catch (error) {
-                console.error('스티커 처리 오류:', error);
-              }
-            };
-            img.onerror = () => {
-              loadedCount++;
-              if (loadedCount === totalStickers) {
-                setTimeout(() => {
-                  try {
-                    const imageData = canvas.toDataURL('image/png');
-                    const link = document.createElement('a');
-                    link.href = imageData;
-                    link.download = `photo_${Date.now()}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    alert('✓ 고해상도 다운로드 완료!');
-                  } catch (error) {
-                    alert('다운로드 실패: ' + error.message);
-                  }
-                }, 100);
-              }
-            };
-            img.src = sticker.src;
-          });
+      // 이모지 그리기
+      emojis.forEach((emoji) => {
+        ctx.save();
+        ctx.font = `${emoji.size * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.translate((emoji.x + emoji.size / 2) * scale, (emoji.y + emoji.size / 2) * scale);
+        ctx.rotate((emoji.rotation * Math.PI) / 180);
+        ctx.fillText(emoji.emoji, 0, 0);
+        ctx.restore();
+      });
+
+      // 텍스트 그리기
+      textStickers.forEach((textSticker) => {
+        ctx.save();
+        ctx.font = `bold ${textSticker.size * scale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.translate((textSticker.x + textSticker.size / 2) * scale, (textSticker.y + textSticker.size / 2) * scale);
+        ctx.rotate((textSticker.rotation * Math.PI) / 180);
+        
+        if (textSticker.strokeWidth > 0) {
+          ctx.strokeStyle = textSticker.stroke;
+          ctx.lineWidth = textSticker.strokeWidth * scale;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.strokeText(textSticker.text, 0, 0);
         }
-      } catch (error) {
-        alert('처리 오류: ' + error.message);
+        ctx.fillStyle = textSticker.color;
+        ctx.fillText(textSticker.text, 0, 0);
+        ctx.restore();
+      });
+
+      // 스티커 그리기 (모두 로드될 때까지 기다리기)
+      if (stickers.length > 0) {
+        const stickerImgs = await Promise.all(stickers.map(s => loadImage(s.src)));
+        
+        stickers.forEach((sticker, idx) => {
+          try {
+            ctx.save();
+            const centerX = (sticker.x + sticker.size / 2) * scale;
+            const centerY = (sticker.y + sticker.size / 2) * scale;
+            ctx.translate(centerX, centerY);
+            ctx.rotate((sticker.rotation * Math.PI) / 180);
+            ctx.drawImage(stickerImgs[idx], -(sticker.size / 2) * scale, -(sticker.size / 2) * scale, sticker.size * scale, sticker.size * scale);
+            ctx.restore();
+          } catch (err) {
+            console.error('스티커 그리기 실패:', err);
+          }
+        });
       }
-    };
-    baseImg.onerror = () => {
-      alert('이미지 로드 실패');
-    };
-    baseImg.src = baseImage;
+
+      // 다운로드
+      setTimeout(() => {
+        const imageData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = imageData;
+        link.download = `photo_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert('✓ 고해상도 다운로드 완료!');
+      }, 100);
+    } catch (error) {
+      console.error('다운로드 오류:', error);
+      alert('다운로드 실패: ' + error.message);
+    }
   };
 
   return (
@@ -351,7 +325,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', flex: 1, minHeight: '0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '12px', flex: 1, minHeight: '0' }}>
             <div 
               ref={containerRef} 
               onPointerMove={handlePointerMove} 
@@ -365,7 +339,7 @@ export default function App() {
                 backgroundPosition: 'center', 
                 width: '100%', 
                 height: '100%', 
-                minHeight: '300px', 
+                minHeight: isMobile ? '250px' : '300px', 
                 border: '1px solid #2a3a4e', 
                 borderRadius: '8px', 
                 cursor: cropMode ? 'crosshair' : 'default', 
