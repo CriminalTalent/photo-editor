@@ -233,11 +233,10 @@ export default function App() {
       alert('다운로드 준비 중...');
       const ctx = canvas.getContext('2d');
       const baseImg = await loadImage(baseImage);
-      const dpiScale = 2;
 
-      canvas.width = baseImg.width * dpiScale;
-      canvas.height = baseImg.height * dpiScale;
-      ctx.drawImage(baseImg, 0, 0, baseImg.width * dpiScale, baseImg.height * dpiScale);
+      canvas.width = baseImg.width;
+      canvas.height = baseImg.height;
+      ctx.drawImage(baseImg, 0, 0);
 
       // backgroundSize: 'contain' 기준 정확한 scale 계산
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -259,10 +258,10 @@ export default function App() {
       // 이모지 그리기
       emojis.forEach((emoji) => {
         ctx.save();
-        ctx.font = `${emoji.size * scale * dpiScale}px Arial`;
+        ctx.font = `${emoji.size * scale}px Arial`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.translate(emoji.x * scale * dpiScale, emoji.y * scale * dpiScale);
+        ctx.translate(emoji.x * scale, emoji.y * scale);
         ctx.rotate((emoji.rotation * Math.PI) / 180);
         ctx.fillText(emoji.emoji, 0, 0);
         ctx.restore();
@@ -271,15 +270,15 @@ export default function App() {
       // 텍스트 그리기
       textStickers.forEach((textSticker) => {
         ctx.save();
-        ctx.font = `bold ${textSticker.size * scale * dpiScale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        ctx.font = `bold ${textSticker.size * scale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.translate(textSticker.x * scale * dpiScale, textSticker.y * scale * dpiScale);
+        ctx.translate(textSticker.x * scale, textSticker.y * scale);
         ctx.rotate((textSticker.rotation * Math.PI) / 180);
         
         if (textSticker.strokeWidth > 0) {
           ctx.strokeStyle = textSticker.stroke;
-          ctx.lineWidth = textSticker.strokeWidth * scale * dpiScale;
+          ctx.lineWidth = textSticker.strokeWidth * scale;
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
           ctx.strokeText(textSticker.text, 0, 0);
@@ -295,7 +294,7 @@ export default function App() {
         
         stickers.forEach((sticker, idx) => {
           try {
-            const stickerDisplaySize = sticker.size * scale * dpiScale;
+            const stickerDisplaySize = sticker.size * scale;
             const stickerAspectRatio = stickerImgs[idx].width / stickerImgs[idx].height;
             
             // backgroundSize: 'contain' 구현 (비율 유지)
@@ -313,7 +312,7 @@ export default function App() {
             const offsetY = (stickerDisplaySize - stickerHeight) / 2;
             
             ctx.save();
-            ctx.translate(sticker.x * scale * dpiScale, sticker.y * scale * dpiScale);
+            ctx.translate(sticker.x * scale, sticker.y * scale);
             ctx.rotate((sticker.rotation * Math.PI) / 180);
             ctx.drawImage(stickerImgs[idx], offsetX, offsetY, stickerWidth, stickerHeight);
             ctx.restore();
@@ -332,7 +331,7 @@ export default function App() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        alert('✓ 고해상도 다운로드 완료!');
+        alert('✓ 다운로드 완료!');
       }, 100);
     } catch (error) {
       console.error('다운로드 오류:', error);
