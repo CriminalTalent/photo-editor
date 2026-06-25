@@ -150,6 +150,44 @@ export default function App() {
     setSelectedType(null);
   };
 
+  const moveToFront = (index, type) => {
+    if (type === 'sticker' && index < stickers.length - 1) {
+      const item = stickers[index];
+      const newStickers = stickers.filter((_, i) => i !== index);
+      setStickers([...newStickers, item]);
+      setSelectedIndex(newStickers.length);
+    } else if (type === 'emoji' && index < emojis.length - 1) {
+      const item = emojis[index];
+      const newEmojis = emojis.filter((_, i) => i !== index);
+      setEmojis([...newEmojis, item]);
+      setSelectedIndex(newEmojis.length);
+    } else if (type === 'text' && index < textStickers.length - 1) {
+      const item = textStickers[index];
+      const newTextStickers = textStickers.filter((_, i) => i !== index);
+      setTextStickers([...newTextStickers, item]);
+      setSelectedIndex(newTextStickers.length);
+    }
+  };
+
+  const moveToBack = (index, type) => {
+    if (type === 'sticker' && index > 0) {
+      const item = stickers[index];
+      const newStickers = stickers.filter((_, i) => i !== index);
+      setStickers([item, ...newStickers]);
+      setSelectedIndex(0);
+    } else if (type === 'emoji' && index > 0) {
+      const item = emojis[index];
+      const newEmojis = emojis.filter((_, i) => i !== index);
+      setEmojis([item, ...newEmojis]);
+      setSelectedIndex(0);
+    } else if (type === 'text' && index > 0) {
+      const item = textStickers[index];
+      const newTextStickers = textStickers.filter((_, i) => i !== index);
+      setTextStickers([item, ...newTextStickers]);
+      setSelectedIndex(0);
+    }
+  };
+
   const cropImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -499,6 +537,14 @@ export default function App() {
                   <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>스티커</h4>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {stickers[selectedIndex].size}px</label><input type="range" min="20" max="300" value={stickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'sticker', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {stickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={stickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'sticker', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                    <button onClick={() => moveToFront(selectedIndex, 'sticker')} style={{ padding: '6px', background: '#3a7a3a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      앞으로
+                    </button>
+                    <button onClick={() => moveToBack(selectedIndex, 'sticker')} style={{ padding: '6px', background: '#3a4a7a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      뒤로
+                    </button>
+                  </div>
                   <button onClick={() => deleteItem(selectedIndex, 'sticker')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                     삭제
                   </button>
@@ -510,6 +556,14 @@ export default function App() {
                   <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>이모지</h4>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {emojis[selectedIndex].size}px</label><input type="range" min="20" max="150" value={emojis[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'emoji', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {emojis[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={emojis[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'emoji', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                    <button onClick={() => moveToFront(selectedIndex, 'emoji')} style={{ padding: '6px', background: '#3a7a3a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      앞으로
+                    </button>
+                    <button onClick={() => moveToBack(selectedIndex, 'emoji')} style={{ padding: '6px', background: '#3a4a7a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      뒤로
+                    </button>
+                  </div>
                   <button onClick={() => deleteItem(selectedIndex, 'emoji')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                     삭제
                   </button>
@@ -521,6 +575,14 @@ export default function App() {
                   <h4 style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#D4AF37' }}>글자</h4>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>크기: {textStickers[selectedIndex].size}px</label><input type="range" min="12" max="72" value={textStickers[selectedIndex].size} onChange={(e) => updateItem(selectedIndex, 'text', { size: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
                   <div style={{ marginBottom: '6px' }}><label style={{ fontSize: '9px', color: '#888' }}>회전: {textStickers[selectedIndex].rotation}°</label><input type="range" min="0" max="360" step="15" value={textStickers[selectedIndex].rotation} onChange={(e) => updateItem(selectedIndex, 'text', { rotation: parseInt(e.target.value) })} style={{ width: '100%' }} /></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                    <button onClick={() => moveToFront(selectedIndex, 'text')} style={{ padding: '6px', background: '#3a7a3a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      앞으로
+                    </button>
+                    <button onClick={() => moveToBack(selectedIndex, 'text')} style={{ padding: '6px', background: '#3a4a7a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}>
+                      뒤로
+                    </button>
+                  </div>
                   <button onClick={() => deleteItem(selectedIndex, 'text')} style={{ width: '100%', padding: '6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                     삭제
                   </button>
