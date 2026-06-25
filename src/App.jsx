@@ -239,7 +239,22 @@ export default function App() {
       canvas.height = baseImg.height * dpiScale;
       ctx.drawImage(baseImg, 0, 0, baseImg.width * dpiScale, baseImg.height * dpiScale);
 
-      const scale = baseImg.width / containerRef.current.clientWidth;
+      // backgroundSize: 'contain' 기준 정확한 scale 계산
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const containerHeight = containerRect.height;
+      
+      const imgAspectRatio = baseImg.width / baseImg.height;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      let scale;
+      if (imgAspectRatio > containerAspectRatio) {
+        // 이미지가 더 넓음 (너비 기준)
+        scale = baseImg.width / containerWidth;
+      } else {
+        // 이미지가 더 좁음 (높이 기준)
+        scale = baseImg.height / containerHeight;
+      }
 
       // 이모지 그리기
       emojis.forEach((emoji) => {
@@ -280,10 +295,27 @@ export default function App() {
         
         stickers.forEach((sticker, idx) => {
           try {
+            const stickerDisplaySize = sticker.size * scale * dpiScale;
+            const stickerAspectRatio = stickerImgs[idx].width / stickerImgs[idx].height;
+            
+            // backgroundSize: 'contain' 구현 (비율 유지)
+            let stickerWidth, stickerHeight;
+            if (stickerAspectRatio >= 1) {
+              stickerWidth = stickerDisplaySize;
+              stickerHeight = stickerDisplaySize / stickerAspectRatio;
+            } else {
+              stickerHeight = stickerDisplaySize;
+              stickerWidth = stickerDisplaySize * stickerAspectRatio;
+            }
+            
+            // 정사각형 박스 내에서 중심 정렬
+            const offsetX = (stickerDisplaySize - stickerWidth) / 2;
+            const offsetY = (stickerDisplaySize - stickerHeight) / 2;
+            
             ctx.save();
             ctx.translate(sticker.x * scale * dpiScale, sticker.y * scale * dpiScale);
             ctx.rotate((sticker.rotation * Math.PI) / 180);
-            ctx.drawImage(stickerImgs[idx], 0, 0, sticker.size * scale * dpiScale, sticker.size * scale * dpiScale);
+            ctx.drawImage(stickerImgs[idx], offsetX, offsetY, stickerWidth, stickerHeight);
             ctx.restore();
           } catch (err) {
             console.error('스티커 그리기 실패:', err);
