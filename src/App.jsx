@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-export default function PhotoEditor() {
+export default function App() {
   const [baseImage, setBaseImage] = useState(null);
   const [stickers, setStickers] = useState([]);
   const [emojis, setEmojis] = useState([]);
