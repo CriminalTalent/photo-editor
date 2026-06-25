@@ -245,9 +245,9 @@ export default function App() {
       emojis.forEach((emoji) => {
         ctx.save();
         ctx.font = `${emoji.size * scale * dpiScale}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.translate((emoji.x + emoji.size / 2) * scale * dpiScale, (emoji.y + emoji.size / 2) * scale * dpiScale);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.translate(emoji.x * scale * dpiScale, emoji.y * scale * dpiScale);
         ctx.rotate((emoji.rotation * Math.PI) / 180);
         ctx.fillText(emoji.emoji, 0, 0);
         ctx.restore();
@@ -257,9 +257,9 @@ export default function App() {
       textStickers.forEach((textSticker) => {
         ctx.save();
         ctx.font = `bold ${textSticker.size * scale * dpiScale}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.translate((textSticker.x + textSticker.size / 2) * scale * dpiScale, (textSticker.y + textSticker.size / 2) * scale * dpiScale);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.translate(textSticker.x * scale * dpiScale, textSticker.y * scale * dpiScale);
         ctx.rotate((textSticker.rotation * Math.PI) / 180);
         
         if (textSticker.strokeWidth > 0) {
@@ -281,11 +281,9 @@ export default function App() {
         stickers.forEach((sticker, idx) => {
           try {
             ctx.save();
-            const centerX = (sticker.x + sticker.size / 2) * scale * dpiScale;
-            const centerY = (sticker.y + sticker.size / 2) * scale * dpiScale;
-            ctx.translate(centerX, centerY);
+            ctx.translate(sticker.x * scale * dpiScale, sticker.y * scale * dpiScale);
             ctx.rotate((sticker.rotation * Math.PI) / 180);
-            ctx.drawImage(stickerImgs[idx], -(sticker.size / 2) * scale * dpiScale, -(sticker.size / 2) * scale * dpiScale, sticker.size * scale * dpiScale, sticker.size * scale * dpiScale);
+            ctx.drawImage(stickerImgs[idx], 0, 0, sticker.size * scale * dpiScale, sticker.size * scale * dpiScale);
             ctx.restore();
           } catch (err) {
             console.error('스티커 그리기 실패:', err);
